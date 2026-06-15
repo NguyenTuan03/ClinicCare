@@ -40,3 +40,4 @@ The system revolves around three core database tables:
 ## 6. Optimization & Error Handling
 * **Anti N+1 Query Strategy:** Employs Eager Loading (using `.includes`) at the Service Object layer to batch data retrieval and minimize SQL query counts.
 * **Global Rescue Network:** Unexpected runtime errors (e.g., Record Not Found) are centrally managed in `ApplicationController` using the `rescue_from` declaration.
+# ClinicCare
