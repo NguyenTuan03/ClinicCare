@@ -1,7 +1,35 @@
-class ApplicationController < ActionController::Base
-  # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
-  allow_browser versions: :modern
+class ApplicationController < ActionController::API
+  include ApiResponse
 
-  # Changes to the importmap will invalidate the etag for HTML responses
-  stale_when_importmap_changes
+  # Centrally rescue JSON formatting/parsing errors from client
+  rescue_from ActionDispatch::Http::Parameters::ParseError, with: :render_bad_request
+
+  def authorize_request
+    header = request.headers["Authorization"]
+    header = header.split(" ").last if header
+
+    # Early return nếu không có token
+    if header.blank?
+      return render_error(message: "Authorization token is missing", status: :unauthorized)
+    end
+
+    @decoded = JsonWebToken.decode(header)
+
+    # Early return nếu token không hợp lệ hoặc hết hạn (JsonWebToken.decode trả về nil)
+    if @decoded.nil?
+      return render_error(message: "Token is invalid or expired", status: :unauthorized)
+    end
+
+    begin
+      @current_user = User.find(@decoded[:user_id])
+    rescue ActiveRecord::RecordNotFound
+      render_error(message: "User not found", status: :unauthorized)
+    end
+  end
+
+  private
+
+  def render_bad_request(exception)
+    render_error(message: "Malformed JSON payload in request body", status: :bad_request)
+  end
 end
