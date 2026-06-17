@@ -14,6 +14,11 @@ Rails.application.routes.draw do
 
   namespace :api do
     namespace :v1 do
+      namespace :admin do
+        # Admin routes
+        post "/create-account", to: "admins#create_account"
+      end
+
       # Authentication Routes
       # @route [POST] /api/v1/auth/register - Register a new user
       post "/auth/register", to: "sessions#register"
