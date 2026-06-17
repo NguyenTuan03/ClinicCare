@@ -11,4 +11,29 @@ Rails.application.routes.draw do
 
   # Defines the root path route ("/")
   # root "posts#index"
+
+  namespace :api do
+    namespace :v1 do
+      namespace :admin do
+        # Admin routes
+        post "/create-account", to: "admins#create_account"
+      end
+
+      # Authentication Routes
+      # @route [POST] /api/v1/auth/register - Register a new user
+      post "/auth/register", to: "sessions#register"
+
+      # @route [POST] /api/v1/auth/login - Authenticate user and return JWT token
+      post "/auth/login", to: "sessions#login"
+
+      # User Routes
+      resources :users, only: [ :create ]
+
+      # Schedule Routes
+      resources :schedules, only: [ :index, :show, :create, :update, :destroy ]
+
+      # Appointment Routes
+      resources :appointments, only: [ :index, :show, :create, :update, :destroy ]
+    end
+  end
 end
