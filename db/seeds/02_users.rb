@@ -3,6 +3,7 @@ puts "Đang tạo dữ liệu User..."
 
 doctor_role = Role.find_by!(name: 'doctor')
 patient_role = Role.find_by!(name: 'patient')
+admin_role = Role.find_by(name: 'admin')
 
 # Danh sách Bác sĩ mẫu
 doctors_data = [
@@ -16,6 +17,12 @@ patients_data = [
   { email: 'patient.tuan@gmail.com', name: 'Nguyễn Văn Tuấn' },
   { email: 'patient.hoa@gmail.com', name: 'Lê Thị Hoa' },
   { email: 'patient.nam@gmail.com', name: 'Trần Hoàng Nam' }
+]
+
+admin_data = [
+  {
+    email: 'admin@gmail.com', name: "Admin"
+  }
 ]
 
 def create_user(data, role)
@@ -35,5 +42,6 @@ end
 
 doctors_data.each { |doc| create_user(doc, doctor_role) }
 patients_data.each { |pat| create_user(pat, patient_role) }
+admin_data.each { |admin| create_user(admin, admin_role) }
 
 puts "Hoàn thành tạo User! Tổng số Bác sĩ: #{User.where(role: doctor_role).count}, Bệnh nhân: #{User.where(role: patient_role).count}"
