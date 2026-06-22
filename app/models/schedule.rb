@@ -5,9 +5,21 @@ class Schedule < ApplicationRecord
   validates :date, :start_time, :end_time, presence: true
   validate :date_format_must_be_valid
   validate :time_format_must_be_valid
+  validate :validate_no_overlapping_schedules
 
   private
 
+  def validate_no_overlapping_schedules
+    return if date.blank? || start_time.blank? || end_time.blank? || user_id.blank?
+
+    overlapping_schedules = Schedule.where(user_id: user_id, date: date)
+                                    .where.not(id: id)
+                                    .where("start_time < ? AND end_time > ?", end_time, start_time)
+
+    if overlapping_schedules.exists?
+      errors.add(:base, "Thời gian đăng ký bị trùng lặp với lịch khám đã có của bạn")
+    end
+  end
   def date_format_must_be_valid
     raw_date = date_before_type_cast
     return if raw_date.blank?
