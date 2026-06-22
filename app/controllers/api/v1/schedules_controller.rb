@@ -1,13 +1,16 @@
 class Api::V1::SchedulesController < ApplicationController
   before_action :authorize_request
-  
+
   def index
     schedule = Schedule.all
     render_success(data: schedule, message: "Success", status: :ok)
   end
 
   def show
-    schedule = Schedule.find(params[:id])
+    schedule = Schedule.find_by(id: params[:id])
+    if !schedule
+      return render_error(message: "Schedule not found", status: :not_found)
+    end
     render_success(data: schedule, message: "Success", status: :ok)
   end
 
@@ -22,14 +25,18 @@ class Api::V1::SchedulesController < ApplicationController
     schedule.user_id = @current_user.id
 
     if schedule.save
-      render_success(schedule, "Success", :created)
+      render_success(data: schedule, message: "Success", status: :created)
     else
       render_error(message: schedule.errors.full_messages, status: :unprocessable_entity)
     end
   end
 
   def update
-    schedule = Schedule.find(params[:id])
+    schedule = Schedule.find_by(id: params[:id])
+    if !schedule
+      return render_error(message: "Schedule not found", status: :not_found)
+    end
+
     if schedule.update(schedule_params)
       render_success(data: schedule, message: "Success", status: :ok)
     else
@@ -38,7 +45,11 @@ class Api::V1::SchedulesController < ApplicationController
   end
 
   def destroy
-    schedule = Schedule.find(params[:id])
+    schedule = Schedule.find_by(id: params[:id])
+    if !schedule
+      return render_error(message: "Schedule not found", status: :not_found)
+    end
+
     schedule.destroy
     render_success(data: schedule, message: "Success", status: :ok)
   end
