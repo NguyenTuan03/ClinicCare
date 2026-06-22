@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_15_081039) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_19_072917) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -33,8 +33,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_15_081039) do
   create_table "schedules", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.date "date"
-    t.date "end_time"
-    t.date "start_time"
+    t.time "end_time"
+    t.time "start_time"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_schedules_on_user_id"
