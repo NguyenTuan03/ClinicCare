@@ -19,17 +19,31 @@ module Api
       def create
         appointment = Appointment.new(appointment_params)
         puts "current user", @current_user
-        # Only doctor can create schedule
-        if @current_user.role.name != "doctor"
+        # Only patient can create appointment
+        if @current_user.role.name != "patient"
           return render_error(message: "You don't have permission to create appointment", status: :unauthorized)
         end
 
-        appointment.user_id = @current_user.id
+        ActiveRecord::Base.transaction do
+          schedule_exist = Schedule.lock("FOR UPDATE").find_by(id: appointment_params[:schedule_id])
 
-        if appointment.save
-          render_success(data: appointment, message: "Success", status: :created)
-        else
-          render_error(message: appointment.errors.full_messages, status: :unprocessable_entity)
+          if !schedule_exist
+            return render_error(message: "Schedule not found", status: :not_found)
+          end
+
+          if Appointment.exists?(schedule_id: schedule_exist.id)
+            return render_error(message: "Schedule is already booked", status: :conflict)
+          end
+
+          appointment.schedule_id = appointment_params[:schedule_id]
+          appointment.patient_id = @current_user.id
+          appointment.status = :pending
+
+          if appointment.save
+            return render_success(data: appointment, message: "Success", status: :created)
+          end
+
+          return render_error(message: appointment.errors.full_messages, status: :unprocessable_entity)
         end
       end
 
@@ -59,7 +73,7 @@ module Api
       private
 
       def appointment_params
-        params.require(:appointment).permit(:date, :start_time, :end_time, :user_id)
+        params.require(:appointment).permit(:schedule_id)
       end
     end
   end
