@@ -33,7 +33,11 @@ Rails.application.routes.draw do
       resources :schedules, only: [ :index, :show, :create, :update, :destroy ]
 
       # Appointment Routes
-      resources :appointments, only: [ :index, :show, :create, :update, :destroy ]
+      resources :appointments, only: [ :index, :show, :create, :update, :destroy ] do
+        collection do
+          put :bulk_update
+        end
+      end
     end
   end
 end

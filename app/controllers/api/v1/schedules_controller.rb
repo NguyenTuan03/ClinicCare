@@ -22,7 +22,6 @@ class Api::V1::SchedulesController < ApplicationController
       return render_error(message: "You don't have permission to create schedule", status: :unauthorized)
     end
 
-
     schedule.user_id = @current_user.id
 
     if schedule.save
