@@ -2,8 +2,23 @@ class Api::V1::SchedulesController < ApplicationController
   before_action :authorize_request
 
   def index
-    schedule = Schedule.all
-    render_success(data: schedule, message: "Success", status: :ok)
+    if @current_user.role.patient?
+      # Patients only see free schedules (no active appointments)
+      schedules = Schedule.where.not(
+        id: Appointment.where(status: [ :pending, :confirmed ]).select(:schedule_id),
+      )
+    elsif @current_user.role.doctor?
+      # Doctors see their own schedules
+      schedules = Schedule.where(user_id: @current_user.id)
+    else
+      schedules = Schedule.all
+    end
+
+    if params[:user_id].present?
+      schedules = schedules.where(user_id: params[:user_id])
+    end
+
+    render_success(data: schedules, message: "Success", status: :ok)
   end
 
   def show

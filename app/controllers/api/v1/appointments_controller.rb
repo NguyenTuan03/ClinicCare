@@ -4,11 +4,18 @@ module Api
       before_action :authorize_request
 
       def index
-        if params[:schedule_id].present?
-          appointments = Appointment.where(schedule_id: params[:schedule_id])
-          return render_success(data: appointments, message: "Success", status: :ok)
+        if @current_user.role.patient?
+          appointments = Appointment.where(patient_id: @current_user.id)
+        elsif @current_user.role.doctor?
+          appointments = Appointment.joins(:schedule).where(schedules: { user_id: @current_user.id })
+        else
+          appointments = Appointment.all
         end
-        appointments = Appointment.all
+
+        if params[:schedule_id].present?
+          appointments = appointments.where(schedule_id: params[:schedule_id])
+        end
+
         render_success(data: appointments, message: "Success", status: :ok)
       end
 
@@ -17,6 +24,15 @@ module Api
         if !appointment
           return render_error(message: "Appointment not found", status: :not_found)
         end
+
+        if @current_user.role.patient? && appointment.patient_id != @current_user.id
+          return render_error(message: "You don't have permission to view this appointment", status: :unauthorized)
+        end
+
+        if @current_user.role.doctor? && appointment.schedule.user_id != @current_user.id
+          return render_error(message: "You don't have permission to view this appointment", status: :unauthorized)
+        end
+
         render_success(data: appointment, message: "Success", status: :ok)
       end
 
@@ -35,7 +51,7 @@ module Api
             return render_error(message: "Schedule not found", status: :not_found)
           end
 
-          if Appointment.exists?(schedule_id: schedule_exist.id)
+          if Appointment.exists?(schedule_id: schedule_exist.id, status: [ :pending, :confirmed ])
             return render_error(message: "Schedule is already booked", status: :conflict)
           end
 
@@ -73,7 +89,7 @@ module Api
               return render_error(message: "Schedule not found", status: :not_found)
             end
 
-            if Appointment.exists?(schedule_id: schedule_exist.id)
+            if Appointment.exists?(schedule_id: schedule_exist.id, status: [ :pending, :confirmed ])
               return render_error(message: "Schedule is already booked", status: :conflict)
             end
 
@@ -144,7 +160,7 @@ module Api
           return render_error(message: "Appointment not found", status: :not_found)
         end
 
-        appointment.destroy
+        appointment.update(status: :cancelled)
         render_success(data: appointment, message: "Success", status: :ok)
       end
 
