@@ -1,8 +1,11 @@
 class ApplicationController < ActionController::API
   include ApiResponse
+  include Pundit::Authorization
 
   # Centrally rescue JSON formatting/parsing errors from client
   rescue_from ActionDispatch::Http::Parameters::ParseError, with: :render_bad_request
+
+  rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
   def authorize_request
     header = request.headers["Authorization"]
@@ -27,9 +30,17 @@ class ApplicationController < ActionController::API
     end
   end
 
+  def current_user
+    @current_user
+  end
+
   private
 
   def render_bad_request(exception)
     render_error(message: "Malformed JSON payload in request body", status: :bad_request)
+  end
+
+  def user_not_authorized
+    render_error(message: "You don't have permission to perform this action", status: :forbidden)
   end
 end

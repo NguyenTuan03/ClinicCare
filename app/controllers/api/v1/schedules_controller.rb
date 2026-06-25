@@ -2,17 +2,7 @@ class Api::V1::SchedulesController < ApplicationController
   before_action :authorize_request
 
   def index
-    if @current_user.role.patient?
-      # Patients only see free schedules (no active appointments)
-      schedules = Schedule.where.not(
-        id: Appointment.where(status: [ :pending, :confirmed ]).select(:schedule_id),
-      )
-    elsif @current_user.role.doctor?
-      # Doctors see their own schedules
-      schedules = Schedule.where(user_id: @current_user.id)
-    else
-      schedules = Schedule.all
-    end
+    schedules = policy_scope(Schedule)
 
     if params[:user_id].present?
       schedules = schedules.where(user_id: params[:user_id])
@@ -26,18 +16,17 @@ class Api::V1::SchedulesController < ApplicationController
     if !schedule
       return render_error(message: "Schedule not found", status: :not_found)
     end
+
+    authorize schedule
+
     render_success(data: schedule, message: "Success", status: :ok)
   end
 
   def create
     schedule = Schedule.new(schedule_params)
-    puts "current user", @current_user
-    # Only doctor can create schedule
-    if @current_user.role.name != "doctor"
-      return render_error(message: "You don't have permission to create schedule", status: :unauthorized)
-    end
-
     schedule.user_id = @current_user.id
+
+    authorize schedule
 
     if schedule.save
       render_success(data: schedule, message: "Success", status: :created)
@@ -52,6 +41,8 @@ class Api::V1::SchedulesController < ApplicationController
       return render_error(message: "Schedule not found", status: :not_found)
     end
 
+    authorize schedule
+
     if schedule.update(schedule_params)
       render_success(data: schedule, message: "Success", status: :ok)
     else
@@ -64,6 +55,8 @@ class Api::V1::SchedulesController < ApplicationController
     if !schedule
       return render_error(message: "Schedule not found", status: :not_found)
     end
+
+    authorize schedule
 
     schedule.destroy
     render_success(data: schedule, message: "Success", status: :ok)

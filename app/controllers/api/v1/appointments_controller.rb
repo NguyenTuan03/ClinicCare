@@ -4,13 +4,7 @@ module Api
       before_action :authorize_request
 
       def index
-        if @current_user.role.patient?
-          appointments = Appointment.where(patient_id: @current_user.id)
-        elsif @current_user.role.doctor?
-          appointments = Appointment.joins(:schedule).where(schedules: { user_id: @current_user.id })
-        else
-          appointments = Appointment.all
-        end
+        appointments = policy_scope(Appointment)
 
         if params[:schedule_id].present?
           appointments = appointments.where(schedule_id: params[:schedule_id])
@@ -25,24 +19,17 @@ module Api
           return render_error(message: "Appointment not found", status: :not_found)
         end
 
-        if @current_user.role.patient? && appointment.patient_id != @current_user.id
-          return render_error(message: "You don't have permission to view this appointment", status: :unauthorized)
-        end
-
-        if @current_user.role.doctor? && appointment.schedule.user_id != @current_user.id
-          return render_error(message: "You don't have permission to view this appointment", status: :unauthorized)
-        end
+        authorize appointment
 
         render_success(data: appointment, message: "Success", status: :ok)
       end
 
       def create
         appointment = Appointment.new(appointment_params)
-        puts "current user", @current_user
-        # Only patient can create appointment
-        if !@current_user.role.patient?
-          return render_error(message: "You don't have permission to create appointment", status: :unauthorized)
-        end
+        appointment.patient_id = @current_user.id
+        appointment.status = :pending
+
+        authorize appointment
 
         ActiveRecord::Base.transaction do
           schedule_exist = Schedule.lock("FOR UPDATE").find_by(id: appointment_params[:schedule_id])
@@ -56,8 +43,6 @@ module Api
           end
 
           appointment.schedule_id = appointment_params[:schedule_id]
-          appointment.patient_id = @current_user.id
-          appointment.status = :pending
 
           if appointment.save
             return render_success(data: appointment, message: "Success", status: :created)
@@ -73,11 +58,9 @@ module Api
           return render_error(message: "Appointment not found", status: :not_found)
         end
 
-        if @current_user.role.patient?
-          if appointment.patient_id != @current_user.id
-            return render_error(message: "You don't have permission to update this appointment", status: :unauthorized)
-          end
+        authorize appointment
 
+        if @current_user.role.patient?
           new_schedule_id = appointment_params[:schedule_id]
           if new_schedule_id.blank?
             return render_error(message: "Missing new schedule id", status: :unprocessable_entity)
@@ -102,10 +85,6 @@ module Api
             return render_error(message: appointment.errors.full_messages, status: :unprocessable_entity)
           end
         elsif @current_user.role.doctor?
-          if appointment.schedule.user_id != @current_user.id
-            return render_error(message: "You don't have permission to update this appointment", status: :unauthorized)
-          end
-
           new_status = appointment_params[:status]
           if new_status.blank?
             return render_error(message: "Missing status", status: :unprocessable_entity)
@@ -120,15 +99,11 @@ module Api
           end
 
           render_error(message: appointment.errors.full_messages, status: :unprocessable_entity)
-        else
-          render_error(message: "You don't have permission to update appointment", status: :unauthorized)
         end
       end
 
       def bulk_update
-        if !@current_user.role.doctor?
-          return render_error(message: "You don't have permission to update appointment status", status: :unauthorized)
-        end
+        authorize Appointment, :bulk_update?
 
         appointment_ids = params[:ids]
         new_status = params[:status]
@@ -159,6 +134,8 @@ module Api
         if !appointment
           return render_error(message: "Appointment not found", status: :not_found)
         end
+
+        authorize appointment
 
         appointment.update(status: :cancelled)
         render_success(data: appointment, message: "Success", status: :ok)
