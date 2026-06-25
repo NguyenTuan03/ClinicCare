@@ -26,22 +26,15 @@ production:
   primary:
     <<: *default
     url: <%= ENV["DATABASE_URL"] %>
-    database: clinic_care_production
-    username: <%= ENV["DATABASE_USERNAME"] %>
-    password: <%= ENV["DATABASE_PASSWORD"] %>
-    host: <%= ENV["DATABASE_HOST"] %>
   cache:
     <<: *default
     url: <%= ENV["DATABASE_URL"] %>
-    database: clinic_care_production
     migrations_paths: db/cache_migrate
   queue:
     <<: *default
     url: <%= ENV["DATABASE_URL"] %>
-    database: clinic_care_production
     migrations_paths: db/queue_migrate
   cable:
     <<: *default
     url: <%= ENV["DATABASE_URL"] %>
-    database: clinic_care_production
     migrations_paths: db/cable_migrate
