@@ -33,7 +33,7 @@ class Schedule < ApplicationRecord
   # Validate định dạng Time (HH:MM)
   def time_format_must_be_valid
     # Áp dụng tương tự cho start_time và end_time
-    [:start_time, :end_time].each do |attr|
+    [ :start_time, :end_time ].each do |attr|
       raw_val = send("#{attr}_before_type_cast")
       return if raw_val.blank?
       # Kiểm tra định dạng HH:MM (24 giờ)
