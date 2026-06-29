@@ -10,18 +10,16 @@ module Api
           appointments = appointments.where(schedule_id: params[:schedule_id])
         end
 
-        render_success(data: appointments, message: "Success", status: :ok)
+        render_success(data: serialize_appointment(appointments), message: "Success", status: :ok)
       end
 
       def show
         appointment = Appointment.find_by(id: params[:id])
-        if !appointment
-          return render_error(message: "Appointment not found", status: :not_found)
-        end
+        return render_error(message: "Appointment not found", status: :not_found) unless appointment
 
         authorize appointment
 
-        render_success(data: appointment, message: "Success", status: :ok)
+        render_success(data: serialize_appointment(appointment), message: "Success", status: :ok)
       end
 
       def create
@@ -151,6 +149,30 @@ module Api
         else
           params.require(:appointment).permit()
         end
+      end
+
+      def serialize_appointment(data)
+        data.as_json(
+          include: {
+            schedule: {
+              only: [ :id, :date, :start_time, :end_time ],
+              include: {
+                user: {
+                  only: [ :id, :name, :email ],
+                  include: {
+                    role: { only: [ :id, :name ] }
+                  }
+                }
+              }
+            },
+            patient: {
+              only: [ :id, :name, :email ],
+              include: {
+                role: { only: [ :id, :name ] }
+              }
+            }
+          }
+        )
       end
     end
   end
