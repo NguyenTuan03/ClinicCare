@@ -8,7 +8,7 @@ class Api::V1::SchedulesController < ApplicationController
       schedules = schedules.where(user_id: params[:user_id])
     end
 
-    render_success(data: schedules, message: "Success", status: :ok)
+    render_success(data: serialize_schedule(schedules), message: "Success", status: :ok)
   end
 
   def show
@@ -19,7 +19,7 @@ class Api::V1::SchedulesController < ApplicationController
 
     authorize schedule
 
-    render_success(data: schedule, message: "Success", status: :ok)
+    render_success(data: serialize_schedule(schedule), message: "Success", status: :ok)
   end
 
   def create
@@ -66,5 +66,18 @@ class Api::V1::SchedulesController < ApplicationController
 
   def schedule_params
     params.require(:schedule).permit(:date, :start_time, :end_time)
+  end
+
+  def serialize_schedule(data)
+    data.as_json(
+      include: {
+        user: {
+          only: [ :name, :email ],
+          include: {
+            role: { only: [ :id, :name ] }
+          }
+        }
+      }
+    )
   end
 end
